@@ -142,6 +142,16 @@
   .proj-fill.yellow{background:linear-gradient(90deg,rgba(255,206,133,.55),#ffce85);}
   .proj-fill.green{background:linear-gradient(90deg,rgba(143,240,187,.55),#8ff0bb);}
   .proj-fill.none{background:rgba(255,255,255,.12);}
+  .proj-nums{display:flex; align-items:center; gap:18px; margin-bottom:12px; flex-wrap:wrap;}
+  .proj-num{background:rgba(255,255,255,.08); border-radius:10px; padding:10px 16px;}
+  .proj-num.highlight{background:rgba(255,255,255,.16); box-shadow:0 0 0 1.5px rgba(255,255,255,.25) inset;}
+  .proj-num.highlight.red{background:rgba(255,138,147,.22); box-shadow:0 0 0 1.5px rgba(255,138,147,.5) inset;}
+  .proj-num.highlight.yellow{background:rgba(255,206,133,.22); box-shadow:0 0 0 1.5px rgba(255,206,133,.5) inset;}
+  .proj-num.highlight.green{background:rgba(143,240,187,.22); box-shadow:0 0 0 1.5px rgba(143,240,187,.5) inset;}
+  .proj-num-n{font-family:'Poppins',sans-serif; font-weight:800; font-size:22px; color:#fff; line-height:1;}
+  .proj-num-n span{font-size:13px; font-weight:600; opacity:.75;}
+  .proj-num-l{font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:rgba(255,255,255,.65); margin-top:5px;}
+  .proj-num-arrow{font-size:18px; color:rgba(255,255,255,.4); flex:none;}
   .proj-note{font-size:12px; color:rgba(255,255,255,.78); margin-top:9px; line-height:1.5;}
   .proj-note b{color:#fff;}
   .proj-vistoria{margin-top:7px; font-size:11px; color:rgba(255,255,255,.65);}
@@ -202,6 +212,21 @@
   .equip-card .row-stats .item.red .n{color:var(--red);}
   .equip-card .row-stats .item.orange .n{color:var(--orange-dark);}
   .equip-card .row-stats .item.green .n{color:var(--green);}
+
+  .equip-card-prevent{
+    margin:12px 0 14px; padding:11px 14px; border-radius:10px;
+    background:var(--bg-alt); border-left:3px solid var(--line);
+  }
+  .equip-card-prevent.red{background:rgba(214,69,80,.08); border-left-color:var(--red);}
+  .equip-card-prevent.yellow{background:rgba(224,169,58,.1); border-left-color:var(--orange-dark);}
+  .equip-card-prevent.green{background:rgba(46,158,109,.08); border-left-color:var(--green);}
+  .ecp-label{font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:4px;}
+  .ecp-row{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .ecp-value{font-family:'Poppins',sans-serif; font-weight:800; font-size:18px; color:var(--text);}
+  .ecp-value span{font-size:11px; font-weight:600; color:var(--muted);}
+  .ecp-sub{font-size:11px; color:var(--muted); white-space:nowrap;}
+  .equip-card-prevent.red .ecp-sub{color:var(--red); font-weight:700;}
+
   .equip-card-money{
     display:flex; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line);
   }
@@ -685,6 +710,11 @@ function buildProjectionHtml(tag){
       <div class="proj-label">Projeção · próxima manutenção preventiva</div>
       <div class="proj-status ${st}">${FAROL_LABEL[st]}</div>
     </div>
+    <div class="proj-nums">
+      <div class="proj-num"><div class="proj-num-n">${fmtNum(p.atual)} <span>${p.unidade}</span></div><div class="proj-num-l">Horímetro/Km atual</div></div>
+      <div class="proj-num-arrow">→</div>
+      <div class="proj-num highlight ${st}"><div class="proj-num-n">${fmtNum(p.proximaRevisao)} <span>${p.unidade}</span></div><div class="proj-num-l">Próxima revisão preventiva</div></div>
+    </div>
     <div class="proj-track"><div class="proj-fill ${st}" style="width:${fillWidth}%"></div></div>
     <div class="proj-note">${noteHtml}<br><span style="opacity:.85">${fonteHtml} · a cada ${fmtNum(p.intervalo)} ${p.unidade}</span></div>
     ${vistoriaHtml ? `<div class="proj-vistoria">${vistoriaHtml}</div>` : ""}
@@ -770,7 +800,21 @@ function renderResumoBody(){
     return b.p0a - a.p0a;
   });
 
-  document.getElementById('resumoGrid').innerHTML = cards.map(({t,counts,p0a,farol,gasto,aberto})=>`
+  document.getElementById('resumoGrid').innerHTML = cards.map(({t,counts,p0a,farol,gasto,aberto})=>{
+    const prev = PREVENTIVO[t.tag];
+    const prevHtml = prev && prev.pct !== null
+      ? `<div class="equip-card-prevent ${farol}">
+           <div class="ecp-label">${prev.pct < 0 ? 'Preventiva vencida' : 'Próxima manutenção preventiva'}</div>
+           <div class="ecp-row">
+             <div class="ecp-value">${fmtNum(prev.proximaRevisao)} <span>${prev.unidade}</span></div>
+             <div class="ecp-sub">${prev.pct < 0
+               ? `${fmtNum(Math.abs(prev.restante))} ${prev.unidade} acima`
+               : `faltam ${fmtNum(prev.restante)} ${prev.unidade}`}</div>
+           </div>
+         </div>`
+      : `<div class="equip-card-prevent none"><div class="ecp-label">Próxima manutenção preventiva</div><div class="ecp-sub">Sem dados cadastrados</div></div>`;
+
+    return `
     <div class="equip-card farol-${farol}" data-truck="${t.tag}">
       <div class="equip-card-img">${EQUIP_IMAGES[t.tag] || ""}</div>
       <div class="equip-card-body">
@@ -779,6 +823,7 @@ function renderResumoBody(){
           <div class="farol-pill ${farol}"><span class="farol-dot"></span>${FAROL_LABEL[farol]}</div>
         </div>
         <div class="sub">${[t.plate,t.model,t.kind].filter(Boolean).join(' · ') || 'Sem cadastro'}</div>
+        ${prevHtml}
         <div class="row-stats">
           <div class="item red"><div class="n">${counts.aberto}</div><div class="l">Aberto</div></div>
           <div class="item orange"><div class="n">${counts.andamento}</div><div class="l">Andamento</div></div>
@@ -791,7 +836,7 @@ function renderResumoBody(){
         </div>
       </div>
     </div>
-  `).join("");
+  `;}).join("");
 
   document.getElementById('resumoGrid').querySelectorAll('.equip-card').forEach(card=>{
     card.addEventListener('click', ()=> setActive(card.dataset.truck));
